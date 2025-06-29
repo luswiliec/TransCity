@@ -1,7 +1,14 @@
 <?php
 session_start();
 error_reporting(0);
-include('includes/config.php');
+
+// Updated config and DB connection handling
+try {
+    include('includes/config.php'); // make sure this file sets $dbh
+    $db_connected = isset($dbh) && $dbh !== null;
+} catch (Exception $e) {
+    $db_connected = false;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,9 +26,7 @@ include('includes/config.php');
   <script src="js/jquery-1.12.0.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
   <script src="js/wow.min.js"></script>
-  <script>
-    new WOW().init();
-  </script>
+  <script> new WOW().init(); </script>
 
   <style>
     body {
@@ -210,35 +215,38 @@ include('includes/config.php');
 </head>
 
 <body>
-  <?php include('includes/header.php'); ?>
+<?php include('includes/header.php'); ?>
 
-  <div class="banners">
-    <div class="banners-slideshow">
-      <div class="slide-group">
-        <img src="images/Mpulungu.jpg" alt="North" class="slide">
-        <div class="slide-caption">Discover Northen Province’s Chishimba water falls</div>
-      </div>
-      <div class="slide-group">
-        <img src="images/Kitwe.jpg" alt="Copperbelt" class="slide">
-        <div class="slide-caption">Explore the thriving Copperbelt region</div>
-      </div>
-      <div class="slide-group">
-        <img src="images/Lusaka2.jpg" alt="Lusaka" class="slide">
-        <div class="slide-caption">Experience the heart of Lusaka</div>
-      </div>
+<div class="banners">
+  <div class="banners-slideshow">
+    <div class="slide-group">
+      <img src="images/Mpulungu.jpg" alt="North" class="slide">
+      <div class="slide-caption">Discover Northern Province’s Chishimba waterfalls</div>
+    </div>
+    <div class="slide-group">
+      <img src="images/Kitwe.jpg" alt="Copperbelt" class="slide">
+      <div class="slide-caption">Explore the thriving Copperbelt region</div>
+    </div>
+    <div class="slide-group">
+      <img src="images/Lusaka2.jpg" alt="Lusaka" class="slide">
+      <div class="slide-caption">Experience the heart of Lusaka</div>
     </div>
   </div>
+</div>
 
-  <div class="container">
-    <section class="holiday">
-      <h3 class="site-header">Bus Service Providers</h3>
+<div class="container">
+  <section class="holiday">
+    <h3 class="site-header">Bus Service Providers</h3>
+
+    <?php if ($db_connected && isset($dbh)): ?>
       <?php
-      $sql = "SELECT * from tbltourpackages order by rand() limit 4";
-      $query = $dbh->prepare($sql);
-      $query->execute();
-      $results = $query->fetchAll(PDO::FETCH_OBJ);
-      if($query->rowCount() > 0){
-        foreach($results as $r){
+      try {
+          $sql = "SELECT * from tbltourpackages order by rand() limit 4";
+          $query = $dbh->prepare($sql);
+          $query->execute();
+          $results = $query->fetchAll(PDO::FETCH_OBJ);
+          if ($query->rowCount() > 0):
+              foreach($results as $r):
       ?>
       <div class="rom-btm wow fadeInUp" data-wow-delay=".3s">
         <div class="room-left">
@@ -254,33 +262,45 @@ include('includes/config.php');
           <a href="package-details.php?pkgid=<?php echo htmlentities($r->PackageId);?>" class="view">Buy Ticket</a>
         </div>
       </div>
-      <?php }} ?>
-      <div style="text-align:center; margin-top:20px;">
-        <a href="package-list.php" class="view">View More</a>
-      </div>
-    </section>
-  </div>
+      <?php
+              endforeach;
+          else:
+              echo "<p style='text-align:center;color:#ccc;'>No packages found at the moment.</p>";
+          endif;
+      } catch (PDOException $e) {
+          echo "<p style='text-align:center;color:red;'>Database query failed: ".htmlentities($e->getMessage())."</p>";
+      }
+      ?>
+    <?php else: ?>
+      <p style="text-align:center;color:red;">Database is offline. Please start MySQL in XAMPP and reload the page.</p>
+    <?php endif; ?>
 
-  <div class="routes">
-    <div class="container">
-      <div class="col-md-4 routes-left wow fadeInRight" data-wow-delay=".5s">
-        <div class="rou-left"><i class="glyphicon glyphicon-list-alt"></i></div>
-        <div class="rou-rgt"><h3>80,000</h3><p>Enquiries</p></div>
-      </div>
-      <div class="col-md-4 routes-left">
-        <div class="rou-left"><i class="fa fa-user"></i></div>
-        <div class="rou-rgt"><h3>1,900</h3><p>Registered Users</p></div>
-      </div>
-      <div class="col-md-4 routes-left wow fadeInRight" data-wow-delay=".5s">
-        <div class="rou-left"><i class="fa fa-ticket"></i></div>
-        <div class="rou-rgt"><h3>70,000,000+</h3><p>Bookings</p></div>
-      </div>
+    <div style="text-align:center; margin-top:20px;">
+      <a href="package-list.php" class="view">View More</a>
+    </div>
+  </section>
+</div>
+
+<div class="routes">
+  <div class="container">
+    <div class="col-md-4 routes-left wow fadeInRight" data-wow-delay=".5s">
+      <div class="rou-left"><i class="glyphicon glyphicon-list-alt"></i></div>
+      <div class="rou-rgt"><h3>80,000</h3><p>Enquiries</p></div>
+    </div>
+    <div class="col-md-4 routes-left">
+      <div class="rou-left"><i class="fa fa-user"></i></div>
+      <div class="rou-rgt"><h3>1,900</h3><p>Registered Users</p></div>
+    </div>
+    <div class="col-md-4 routes-left wow fadeInRight" data-wow-delay=".5s">
+      <div class="rou-left"><i class="fa fa-ticket"></i></div>
+      <div class="rou-rgt"><h3>70,000,000+</h3><p>Bookings</p></div>
     </div>
   </div>
+</div>
 
-  <?php include('includes/footer.php'); ?>
-  <?php include('includes/signup.php'); ?>
-  <?php include('includes/signin.php'); ?>
-  <?php include('includes/write-us.php'); ?>
+<?php include('includes/footer.php'); ?>
+<?php include('includes/signup.php'); ?>
+<?php include('includes/signin.php'); ?>
+<?php include('includes/write-us.php'); ?>
 </body>
 </html>
